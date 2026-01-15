@@ -9,28 +9,34 @@ const CANVAS_WIDTH = 400;
 const CANVAS_HEIGHT = 400;
 
 // drawing.json의 첫 번째 요소를 제시 그림으로 사용
-const promptStrokes: Stroke[] = drawingData[drawingData.length - 1].map(
-  (item) => ({
-    points: item.points as [number[], number[]],
-    color: item.color as Color,
-  })
-);
+const promptStrokes: Stroke[] = drawingData[8].map((item) => ({
+  points: item.points as [number[], number[]],
+  color: item.color as Color,
+}));
 
 export const DrawingGame = () => {
   const [similarity, setSimilarity] = useState<number | null>(null);
+  const [strokeInput, setStrokeInput] = useState<string>("");
   const promptCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // 사용자 그림 캔버스
-  const { canvasRef, strokes, currentColor, setCurrentColor, clearCanvas } =
-    useCanvasDrawing(CANVAS_WIDTH, CANVAS_HEIGHT, (updatedStrokes) => {
-      // 스트로크가 완성될 때마다 유사도 계산
-      if (updatedStrokes.length > 0) {
-        const result = calculateFinalSimilarity(promptStrokes, updatedStrokes);
-        setSimilarity(result.similarity);
-      } else {
-        setSimilarity(null);
-      }
-    });
+  const {
+    canvasRef,
+    strokes,
+    currentColor,
+    setCurrentColor,
+    clearCanvas,
+    undoStroke,
+    loadStrokes,
+  } = useCanvasDrawing(CANVAS_WIDTH, CANVAS_HEIGHT, (updatedStrokes) => {
+    // 스트로크가 완성될 때마다 유사도 계산
+    if (updatedStrokes.length > 0) {
+      const result = calculateFinalSimilarity(promptStrokes, updatedStrokes);
+      setSimilarity(result.similarity);
+    } else {
+      setSimilarity(null);
+    }
+  });
 
   // 제시 그림 렌더링
   useEffect(() => {
@@ -51,6 +57,39 @@ export const DrawingGame = () => {
   // 색상 선택 핸들러
   const handleColorChange = (color: Color) => {
     setCurrentColor(color);
+  };
+
+  // 스트로크 데이터 로드 핸들러
+  const handleLoadStrokes = () => {
+    try {
+      const parsed = JSON.parse(strokeInput);
+
+      // 입력된 데이터가 배열인지 확인
+      if (!Array.isArray(parsed)) {
+        alert("스트로크 데이터는 배열 형식이어야 합니다.");
+        return;
+      }
+
+      // Stroke 타입으로 변환
+      const loadedStrokes: Stroke[] = parsed.map((item: any) => ({
+        points: item.points as [number[], number[]],
+        color: item.color as Color,
+      }));
+
+      loadStrokes(loadedStrokes);
+      alert(`${loadedStrokes.length}개의 스트로크를 로드했습니다.`);
+    } catch (error) {
+      alert("잘못된 JSON 형식입니다. 스트로크 데이터를 확인해주세요.");
+      console.error(error);
+    }
+  };
+
+  // 제시 그림을 사용자 캔버스에 로드
+  const handleLoadPromptStrokes = () => {
+    loadStrokes(promptStrokes);
+    alert(
+      `제시 그림을 사용자 캔버스에 로드했습니다. (${promptStrokes.length}개 스트로크)`
+    );
   };
 
   const colors: { name: string; value: Color }[] = [
@@ -131,6 +170,24 @@ export const DrawingGame = () => {
               ))}
             </div>
 
+            {/* Undo 버튼 */}
+            <button
+              onClick={undoStroke}
+              disabled={strokes.length === 0}
+              style={{
+                padding: "8px 16px",
+                backgroundColor: strokes.length === 0 ? "#ccc" : "#FF9800",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: strokes.length === 0 ? "not-allowed" : "pointer",
+                fontSize: "14px",
+                marginRight: "10px",
+              }}
+            >
+              Undo (마지막 스트로크 취소)
+            </button>
+
             {/* 전체 지우기 */}
             <button
               onClick={clearCanvas}
@@ -145,6 +202,59 @@ export const DrawingGame = () => {
               }}
             >
               전체 지우기
+            </button>
+
+            {/* 제시 그림 로드 버튼 */}
+            <button
+              onClick={handleLoadPromptStrokes}
+              style={{
+                padding: "8px 16px",
+                backgroundColor: "#9C27B0",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "14px",
+                marginLeft: "10px",
+              }}
+            >
+              제시 그림 로드
+            </button>
+          </div>
+
+          {/* 스트로크 데이터 입력 및 로드 */}
+          <div style={{ marginTop: "20px" }}>
+            <h3 style={{ marginBottom: "10px" }}>스트로크 데이터 로드</h3>
+            <textarea
+              value={strokeInput}
+              onChange={(e) => setStrokeInput(e.target.value)}
+              placeholder='[{"points":[[x좌표 배열],[y좌표 배열]],"color":[r,g,b]}, ...]'
+              style={{
+                width: "100%",
+                minHeight: "100px",
+                padding: "10px",
+                fontFamily: "monospace",
+                fontSize: "12px",
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                resize: "vertical",
+              }}
+            />
+            <button
+              onClick={handleLoadStrokes}
+              disabled={!strokeInput.trim()}
+              style={{
+                marginTop: "10px",
+                padding: "8px 16px",
+                backgroundColor: strokeInput.trim() ? "#4CAF50" : "#ccc",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: strokeInput.trim() ? "pointer" : "not-allowed",
+                fontSize: "14px",
+              }}
+            >
+              스트로크 데이터 로드
             </button>
           </div>
         </div>

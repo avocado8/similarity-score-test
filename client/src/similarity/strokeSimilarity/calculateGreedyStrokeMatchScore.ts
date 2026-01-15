@@ -1,4 +1,5 @@
 import type { Stroke } from "../model";
+import { colorSimilarity } from "./colorSimilarity";
 import { comparePairwiseStrokeSimilarity } from "./comparePairwiseStrokeSimilarity";
 
 // 두 그림의 스트로크를 모두 일대일로 매칭하여 최종 스트로크 유사도 산출
@@ -42,7 +43,15 @@ export const calculateGreedyStrokeMatchScore = (
     if (!used1.has(pair.i) && !used2.has(pair.j)) {
       used1.add(pair.i);
       used2.add(pair.j);
-      matches.push(pair.similarity);
+
+      const shapeSim = pair.similarity;
+      const colorSim = colorSimilarity(
+        strokes1[pair.i].color,
+        strokes2[pair.j].color
+      );
+
+      const pairFinalSim = shapeSim * (0.7 + 0.3 * colorSim);
+      matches.push(pairFinalSim);
     }
   }
 

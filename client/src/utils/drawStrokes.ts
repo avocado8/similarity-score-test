@@ -30,6 +30,14 @@ export const drawStroke = (
 
   if (xPoints.length === 0) return;
 
+  // 좌표 범위 자동 감지
+  const maxX = Math.max(...xPoints);
+  const maxY = Math.max(...yPoints);
+
+  // 255보다 크면 QuickDraw 원본 좌표(0-640 정도), 아니면 정규화된 좌표(0-255)
+  const normalizeX = maxX > 255 ? maxX : 255;
+  const normalizeY = maxY > 255 ? maxY : 255;
+
   ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
   ctx.lineWidth = 2;
   ctx.lineCap = 'round';
@@ -37,15 +45,15 @@ export const drawStroke = (
 
   ctx.beginPath();
 
-  // 첫 번째 점으로 이동 (0-255 범위를 캔버스 크기로 변환)
-  const firstX = (xPoints[0] / 255) * canvasWidth;
-  const firstY = (yPoints[0] / 255) * canvasHeight;
+  // 첫 번째 점으로 이동
+  const firstX = (xPoints[0] / normalizeX) * canvasWidth;
+  const firstY = (yPoints[0] / normalizeY) * canvasHeight;
   ctx.moveTo(firstX, firstY);
 
   // 나머지 점들을 연결
   for (let i = 1; i < xPoints.length; i++) {
-    const x = (xPoints[i] / 255) * canvasWidth;
-    const y = (yPoints[i] / 255) * canvasHeight;
+    const x = (xPoints[i] / normalizeX) * canvasWidth;
+    const y = (yPoints[i] / normalizeY) * canvasHeight;
     ctx.lineTo(x, y);
   }
 

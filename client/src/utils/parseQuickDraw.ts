@@ -1,11 +1,11 @@
 import type { Stroke } from "../similarity/model";
 
 interface RawDrawing {
-  word: string;
-  countrycode: string;
-  timestamp: string;
-  recognized: boolean;
-  key_id: string;
+  word?: string;
+  countrycode?: string;
+  timestamp?: string;
+  recognized?: boolean;
+  key_id?: string;
   drawing: number[][][];
 }
 
