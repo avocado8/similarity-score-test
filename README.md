@@ -2,6 +2,8 @@
 
 이 프로젝트는 그림 유사도 측정 및 Google QuickDraw 데이터셋을 활용한 스트로크 데이터 처리/시각화를 위한 프로젝트입니다.
 
+Gemini와 Claude Code를 활용하여 제작되었습니다.
+
 ## 설치 및 실행 방법 (Installation & Usage)
 
 ### 1. 설치 (Installation)
