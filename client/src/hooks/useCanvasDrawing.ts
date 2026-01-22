@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import type { Stroke, Color } from '../similarity/model';
 
 interface UseCanvasDrawingReturn {
-  canvasRef: React.RefObject<HTMLCanvasElement>;
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
   strokes: Stroke[];
   currentColor: Color;
   setCurrentColor: (color: Color) => void;
@@ -40,14 +40,10 @@ export const useCanvasDrawing = (
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
   }, [canvasWidth, canvasHeight]);
 
-  // 그리기 시작
-  const startDrawing = (e: MouseEvent) => {
+  // 공통 그리기 로직: 시작
+  const startProcessing = (x: number, y: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
 
     // 캔버스 좌표를 0-255 범위로 정규화
     const normalizedX = Math.round((x / canvasWidth) * 255);
@@ -68,16 +64,12 @@ export const useCanvasDrawing = (
     ctx.lineJoin = 'round';
   };
 
-  // 그리기 중
-  const draw = (e: MouseEvent) => {
+  // 공통 그리기 로직: 이동
+  const continueProcessing = (x: number, y: number) => {
     if (!isDrawing) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
 
     // 캔버스 좌표를 0-255 범위로 정규화
     const normalizedX = Math.round((x / canvasWidth) * 255);
@@ -95,6 +87,61 @@ export const useCanvasDrawing = (
 
     ctx.lineTo(x, y);
     ctx.stroke();
+  };
+
+  // 마우스 이벤트 핸들러
+  const startDrawing = (e: MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    startProcessing(x, y);
+  };
+
+  const draw = (e: MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    continueProcessing(x, y);
+  };
+
+  // 터치 이벤트 핸들러
+  const startTouch = (e: TouchEvent) => {
+    if (e.cancelable) e.preventDefault(); // 스크롤 방지
+    const canvas = canvasRef.current;
+    if (!canvas || e.touches.length === 0) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    startProcessing(x, y);
+  };
+
+  const moveTouch = (e: TouchEvent) => {
+    if (e.cancelable) e.preventDefault(); // 스크롤 방지
+    const canvas = canvasRef.current;
+    if (!canvas || e.touches.length === 0) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    continueProcessing(x, y);
+  };
+
+  const endTouch = (e: TouchEvent) => {
+    if (e.cancelable) e.preventDefault();
+    endDrawing();
   };
 
   // 그리기 종료
@@ -244,16 +291,26 @@ export const useCanvasDrawing = (
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // 마우스
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', endDrawing);
     canvas.addEventListener('mouseleave', endDrawing);
+
+    // 터치 (패시브 옵션 false로 설정해야 preventDefault 작동)
+    canvas.addEventListener('touchstart', startTouch, { passive: false });
+    canvas.addEventListener('touchmove', moveTouch, { passive: false });
+    canvas.addEventListener('touchend', endTouch, { passive: false });
 
     return () => {
       canvas.removeEventListener('mousedown', startDrawing);
       canvas.removeEventListener('mousemove', draw);
       canvas.removeEventListener('mouseup', endDrawing);
       canvas.removeEventListener('mouseleave', endDrawing);
+
+      canvas.removeEventListener('touchstart', startTouch);
+      canvas.removeEventListener('touchmove', moveTouch);
+      canvas.removeEventListener('touchend', endTouch);
     };
   });
 
