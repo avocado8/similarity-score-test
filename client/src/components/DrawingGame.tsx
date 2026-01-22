@@ -93,11 +93,13 @@ export const DrawingGame = () => {
   };
 
   const colors: { name: string; value: Color }[] = [
-    { name: "검정", value: [0, 0, 0] },
-    { name: "빨강", value: [255, 0, 0] },
-    { name: "파랑", value: [0, 0, 255] },
-    { name: "초록", value: [0, 255, 0] },
+    { name: "검정", value: [0, 0, 0] }, // black
+    { name: "빨강", value: [239, 68, 68] }, // red
+    { name: "파랑", value: [59, 130, 246] }, // blue
+    { name: "초록", value: [34, 197, 94] }, // green
+    { name: "노랑", value: [250, 204, 21] }, // yellow
   ];
+
 
   return (
     <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
