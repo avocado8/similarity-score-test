@@ -17,14 +17,14 @@ npm install
 **클라이언트 폴더 (웹 앱용)**
 ```bash
 cd client
-npm install
+pnpm install
 ```
 
 ### 2. 실행 (Run)
 클라이언트 애플리케이션을 실행하여 웹 브라우저에서 확인합니다.
 ```bash
 cd client
-npm run dev
+pnpm run dev
 ```
 
 ---
