@@ -5,11 +5,11 @@ import { calculateFinalSimilarity } from "../similarity/calculateFinalSimilarity
 import type { Stroke, Color } from "../similarity/model";
 import drawingData from "../../../drawing.json";
 
-const CANVAS_WIDTH = 400;
-const CANVAS_HEIGHT = 400;
+const CANVAS_WIDTH = 500;
+const CANVAS_HEIGHT = 500;
 
 // drawing.json의 첫 번째 요소를 제시 그림으로 사용
-const promptStrokes: Stroke[] = drawingData[8].map((item) => ({
+const promptStrokes: Stroke[] = drawingData[0].map((item) => ({
   points: item.points as [number[], number[]],
   color: item.color as Color,
 }));
@@ -48,6 +48,7 @@ export const DrawingGame = () => {
 
     // 배경을 흰색으로 채우기
     ctx.fillStyle = "white";
+    ctx.lineWidth = 3;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
     // 제시 그림 그리기
@@ -88,7 +89,7 @@ export const DrawingGame = () => {
   const handleLoadPromptStrokes = () => {
     loadStrokes(promptStrokes);
     alert(
-      `제시 그림을 사용자 캔버스에 로드했습니다. (${promptStrokes.length}개 스트로크)`
+      `제시 그림을 사용자 캔버스에 로드했습니다. (${promptStrokes.length}개 스트로크)`,
     );
   };
 
@@ -99,7 +100,6 @@ export const DrawingGame = () => {
     { name: "초록", value: [34, 197, 94] }, // green
     { name: "노랑", value: [250, 204, 21] }, // yellow
   ];
-
 
   return (
     <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
