@@ -2,36 +2,18 @@ import {
   getStrokeBoundingBox,
   getStrokeDirection,
   getStrokeLength,
-} from "../geometry/strokeGeometry";
-import type { Stroke } from "../model";
-import {
-  get3DEuclideanDistance,
-  getEuclideanDistance,
-  getRelativeSimilarity,
-} from "../utils/math";
+} from "./strokeGeometry";
+import { getEuclideanDistance, getRelativeSimilarity } from "./math";
+import type { Stroke } from "../config/types";
 
 // 두 스트로크를 일대일로 비교
 export const comparePairwiseStrokeSimilarity = (
   stroke1: Stroke,
-  stroke2: Stroke
+  stroke2: Stroke,
 ): number => {
   const lengthSimilarity = getLengthSimilarity(stroke1, stroke2);
   const directionSimilarity = getDirectionSimilarity(stroke1, stroke2);
   const positionSimilarity = getPositionSimilarity(stroke1, stroke2);
-
-  // 색상 유사도
-  const color1 = stroke1.color;
-  const color2 = stroke2.color;
-  const colordistance = get3DEuclideanDistance(
-    color1[0],
-    color2[0],
-    color1[1],
-    color2[1],
-    color1[2],
-    color2[2]
-  );
-  const MAX_RGB_DISTANCE = Math.sqrt(255 * 255 * 3);
-  const colorSimilarity = Math.max(0, 1 - colordistance / MAX_RGB_DISTANCE);
 
   // 가중 평균
   const similarity =
@@ -39,11 +21,6 @@ export const comparePairwiseStrokeSimilarity = (
     directionSimilarity * 0.3 +
     positionSimilarity * 0.35;
 
-  console.log(
-    `stroke sim: length ${lengthSimilarity * 100}, direction ${
-      directionSimilarity * 100
-    }, position ${positionSimilarity * 100}, color ${colorSimilarity * 100}`
-  );
   return similarity * 100;
 };
 
@@ -74,7 +51,7 @@ const getPositionSimilarity = (stroke1: Stroke, stroke2: Stroke): number => {
     bbox2.centerX,
     bbox2.centerY,
     bbox1.centerX,
-    bbox1.centerY
+    bbox1.centerY,
   );
   const centerSim = Math.max(0, 1 - centerDist / 1.0);
 

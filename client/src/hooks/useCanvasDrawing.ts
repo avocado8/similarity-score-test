@@ -1,5 +1,6 @@
-import { useRef, useState, useEffect } from 'react';
-import type { Stroke, Color } from '../similarity/model';
+import { useRef, useState, useEffect } from "react";
+import { CANVAS_STYLES } from "../config/canvasConfig";
+import type { Color, Stroke } from "../config/types";
 
 interface UseCanvasDrawingReturn {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -17,13 +18,16 @@ interface UseCanvasDrawingReturn {
 export const useCanvasDrawing = (
   canvasWidth: number,
   canvasHeight: number,
-  onStrokeComplete?: (strokes: Stroke[]) => void
+  onStrokeComplete?: (strokes: Stroke[]) => void,
 ): UseCanvasDrawingReturn => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [currentColor, setCurrentColor] = useState<Color>([0, 0, 0]); // 기본 검정색
-  const [currentStroke, setCurrentStroke] = useState<{ x: number[]; y: number[] }>({
+  const [currentStroke, setCurrentStroke] = useState<{
+    x: number[];
+    y: number[];
+  }>({
     x: [],
     y: [],
   });
@@ -33,10 +37,10 @@ export const useCanvasDrawing = (
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = CANVAS_STYLES.fillStyle;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
   }, [canvasWidth, canvasHeight]);
 
@@ -53,15 +57,15 @@ export const useCanvasDrawing = (
     setCurrentStroke({ x: [normalizedX], y: [normalizedY] });
 
     // 캔버스에 그리기 시작
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.strokeStyle = `rgb(${currentColor[0]}, ${currentColor[1]}, ${currentColor[2]})`;
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    ctx.lineWidth = CANVAS_STYLES.lineWidth;
+    ctx.lineCap = CANVAS_STYLES.lineCap;
+    ctx.lineJoin = CANVAS_STYLES.lineJoin;
   };
 
   // 공통 그리기 로직: 이동
@@ -82,7 +86,7 @@ export const useCanvasDrawing = (
     }));
 
     // 캔버스에 그리기
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     ctx.lineTo(x, y);
@@ -173,10 +177,10 @@ export const useCanvasDrawing = (
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = CANVAS_STYLES.fillStyle;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     setStrokes([]);
     setCurrentStroke({ x: [], y: [] });
@@ -198,11 +202,11 @@ export const useCanvasDrawing = (
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     // 캔버스 지우기
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = CANVAS_STYLES.fillStyle;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     // 남은 스트로크들 다시 그리기
@@ -213,9 +217,9 @@ export const useCanvasDrawing = (
       if (xPoints.length === 0) return;
 
       ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
+      ctx.lineWidth = CANVAS_STYLES.lineWidth;
+      ctx.lineCap = CANVAS_STYLES.lineCap;
+      ctx.lineJoin = CANVAS_STYLES.lineJoin;
 
       ctx.beginPath();
 
@@ -246,11 +250,11 @@ export const useCanvasDrawing = (
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     // 캔버스 지우기
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = CANVAS_STYLES.fillStyle;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     // 로드된 스트로크들 그리기
@@ -261,9 +265,9 @@ export const useCanvasDrawing = (
       if (xPoints.length === 0) return;
 
       ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
+      ctx.lineWidth = CANVAS_STYLES.lineWidth;
+      ctx.lineCap = CANVAS_STYLES.lineCap;
+      ctx.lineJoin = CANVAS_STYLES.lineJoin;
 
       ctx.beginPath();
 
@@ -292,25 +296,25 @@ export const useCanvasDrawing = (
     if (!canvas) return;
 
     // 마우스
-    canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', endDrawing);
-    canvas.addEventListener('mouseleave', endDrawing);
+    canvas.addEventListener("mousedown", startDrawing);
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("mouseup", endDrawing);
+    canvas.addEventListener("mouseleave", endDrawing);
 
     // 터치 (패시브 옵션 false로 설정해야 preventDefault 작동)
-    canvas.addEventListener('touchstart', startTouch, { passive: false });
-    canvas.addEventListener('touchmove', moveTouch, { passive: false });
-    canvas.addEventListener('touchend', endTouch, { passive: false });
+    canvas.addEventListener("touchstart", startTouch, { passive: false });
+    canvas.addEventListener("touchmove", moveTouch, { passive: false });
+    canvas.addEventListener("touchend", endTouch, { passive: false });
 
     return () => {
-      canvas.removeEventListener('mousedown', startDrawing);
-      canvas.removeEventListener('mousemove', draw);
-      canvas.removeEventListener('mouseup', endDrawing);
-      canvas.removeEventListener('mouseleave', endDrawing);
+      canvas.removeEventListener("mousedown", startDrawing);
+      canvas.removeEventListener("mousemove", draw);
+      canvas.removeEventListener("mouseup", endDrawing);
+      canvas.removeEventListener("mouseleave", endDrawing);
 
-      canvas.removeEventListener('touchstart', startTouch);
-      canvas.removeEventListener('touchmove', moveTouch);
-      canvas.removeEventListener('touchend', endTouch);
+      canvas.removeEventListener("touchstart", startTouch);
+      canvas.removeEventListener("touchmove", moveTouch);
+      canvas.removeEventListener("touchend", endTouch);
     };
   });
 

@@ -1,5 +1,5 @@
-import type { Point, Stroke } from "../model";
-import { getPathLength } from "../utils/math";
+import type { Point, Stroke } from "../config/types";
+import { getPathLength } from "./math";
 
 // 스트로크 길이
 export const getStrokeLength = (stroke: Stroke): number => {

@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useCanvasDrawing } from "../hooks/useCanvasDrawing";
 import { drawStrokes } from "../utils/drawStrokes";
-import { calculateFinalSimilarity } from "../similarity/calculateFinalSimilarity";
-import type { Stroke, Color } from "../similarity/model";
 import drawingData from "../../../drawing.json";
-
-const CANVAS_WIDTH = 500;
-const CANVAS_HEIGHT = 500;
+import {
+  CANVAS_CONFIG,
+  CANVAS_STYLES,
+  COLOR_MAP,
+} from "../config/canvasConfig";
+import { calculateFinalSimilarityByStrokes } from "../similarity/calculateFinalSimilarity";
+import type { Color, Stroke } from "../config/types";
 
 // drawing.json의 첫 번째 요소를 제시 그림으로 사용
 const promptStrokes: Stroke[] = drawingData[0].map((item) => ({
@@ -28,15 +30,22 @@ export const DrawingGame = () => {
     clearCanvas,
     undoStroke,
     loadStrokes,
-  } = useCanvasDrawing(CANVAS_WIDTH, CANVAS_HEIGHT, (updatedStrokes) => {
-    // 스트로크가 완성될 때마다 유사도 계산
-    if (updatedStrokes.length > 0) {
-      const result = calculateFinalSimilarity(promptStrokes, updatedStrokes);
-      setSimilarity(result.similarity);
-    } else {
-      setSimilarity(null);
-    }
-  });
+  } = useCanvasDrawing(
+    CANVAS_CONFIG.width,
+    CANVAS_CONFIG.height,
+    (updatedStrokes) => {
+      // 스트로크가 완성될 때마다 유사도 계산
+      if (updatedStrokes.length > 0) {
+        const result = calculateFinalSimilarityByStrokes(
+          promptStrokes,
+          updatedStrokes,
+        );
+        setSimilarity(result.similarity);
+      } else {
+        setSimilarity(null);
+      }
+    },
+  );
 
   // 제시 그림 렌더링
   useEffect(() => {
@@ -47,12 +56,12 @@ export const DrawingGame = () => {
     if (!ctx) return;
 
     // 배경을 흰색으로 채우기
-    ctx.fillStyle = "white";
-    ctx.lineWidth = 3;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.fillStyle = CANVAS_STYLES.fillStyle;
+    ctx.lineWidth = CANVAS_STYLES.lineWidth;
+    ctx.fillRect(0, 0, CANVAS_CONFIG.width, CANVAS_CONFIG.height);
 
     // 제시 그림 그리기
-    drawStrokes(ctx, promptStrokes, CANVAS_WIDTH, CANVAS_HEIGHT);
+    drawStrokes(ctx, promptStrokes, CANVAS_CONFIG.width, CANVAS_CONFIG.height);
   }, []);
 
   // 색상 선택 핸들러
@@ -94,11 +103,11 @@ export const DrawingGame = () => {
   };
 
   const colors: { name: string; value: Color }[] = [
-    { name: "검정", value: [0, 0, 0] }, // black
-    { name: "빨강", value: [239, 68, 68] }, // red
-    { name: "파랑", value: [59, 130, 246] }, // blue
-    { name: "초록", value: [34, 197, 94] }, // green
-    { name: "노랑", value: [250, 204, 21] }, // yellow
+    { name: "검정", value: COLOR_MAP["black"] },
+    { name: "빨강", value: COLOR_MAP["red"] },
+    { name: "파랑", value: COLOR_MAP["blue"] },
+    { name: "초록", value: COLOR_MAP["green"] },
+    { name: "노랑", value: COLOR_MAP["yellow"] },
   ];
 
   return (
@@ -111,8 +120,8 @@ export const DrawingGame = () => {
           <h2>제시 그림</h2>
           <canvas
             ref={promptCanvasRef}
-            width={CANVAS_WIDTH}
-            height={CANVAS_HEIGHT}
+            width={CANVAS_CONFIG.width}
+            height={CANVAS_CONFIG.height}
             style={{
               border: "2px solid #333",
               backgroundColor: "white",
@@ -125,8 +134,8 @@ export const DrawingGame = () => {
           <h2>내 그림</h2>
           <canvas
             ref={canvasRef}
-            width={CANVAS_WIDTH}
-            height={CANVAS_HEIGHT}
+            width={CANVAS_CONFIG.width}
+            height={CANVAS_CONFIG.height}
             style={{
               border: "2px solid #333",
               backgroundColor: "white",

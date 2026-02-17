@@ -1,11 +1,11 @@
-import type { Stroke } from "../model";
-import { colorSimilarity } from "./colorSimilarity";
 import { comparePairwiseStrokeSimilarity } from "./comparePairwiseStrokeSimilarity";
+import { calculateColorSimilarity } from "./calculateColorSimilarity";
+import type { Stroke } from "../config/types";
 
 // 두 그림의 스트로크를 모두 일대일로 매칭하여 최종 스트로크 유사도 산출
 export const calculateGreedyStrokeMatchScore = (
   strokes1: Stroke[],
-  strokes2: Stroke[]
+  strokes2: Stroke[],
 ): number => {
   if (strokes1.length === 0 && strokes2.length === 0) return 100;
   if (strokes1.length === 0 || strokes2.length === 0) return 0;
@@ -20,7 +20,7 @@ export const calculateGreedyStrokeMatchScore = (
     for (let j = 0; j < n2; j++) {
       similarityMatrix[i][j] = comparePairwiseStrokeSimilarity(
         strokes1[i],
-        strokes2[j]
+        strokes2[j],
       );
     }
   }
@@ -44,14 +44,14 @@ export const calculateGreedyStrokeMatchScore = (
       used1.add(pair.i);
       used2.add(pair.j);
 
-      const shapeSim = pair.similarity;
-      const colorSim = colorSimilarity(
+      const strokeShapeSim = pair.similarity;
+      const strokeColorSim = calculateColorSimilarity(
         strokes1[pair.i].color,
-        strokes2[pair.j].color
+        strokes2[pair.j].color,
       );
 
-      const pairFinalSim = shapeSim * (0.7 + 0.3 * colorSim);
-      matches.push(pairFinalSim);
+      const finalPairSim = strokeShapeSim * (0.7 + 0.3 * strokeColorSim);
+      matches.push(finalPairSim);
     }
   }
 
