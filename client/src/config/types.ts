@@ -17,6 +17,34 @@ export interface Similarity {
   shapeSimilarity: number;
 }
 
+export interface SimilarityConfig {
+  weights: {
+    strokeCount: number;
+    strokeMatch: number;
+    shape: number;
+  };
+  useNormalize?: boolean;
+}
+
+export interface SimulationResult extends Similarity {
+  details: {
+    strokeMatch: {
+      matches: {
+        index1: number;
+        index2: number;
+        score: number;
+        subScores: {
+          length: number;
+          direction: number;
+          position: number;
+          color: number;
+        };
+      }[];
+      unmatched: number[];
+    };
+  };
+}
+
 export interface PreprocessedStrokeData {
   normalizedStrokes: Stroke[];
   strokeCount: number;

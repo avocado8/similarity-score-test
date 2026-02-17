@@ -9,7 +9,8 @@ import { getRadialSignature } from "./radialSignature";
 import { calculateShapeSimilarityByPreprocessed } from "./calculateShapeSimilarity";
 import type {
   PreprocessedStrokeData,
-  Similarity,
+  SimilarityConfig,
+  SimulationResult,
   Stroke,
 } from "../config/types";
 
@@ -40,12 +41,14 @@ export const preprocessStrokes = (
 export const calculateFinalSimilarityByStrokes = (
   promptStrokes: Stroke[],
   playerStrokes: Stroke[],
-): Similarity => {
+  config?: SimilarityConfig,
+): SimulationResult => {
   const preprocessedPrompt = preprocessStrokes(promptStrokes);
   const preprocessPlayer = preprocessStrokes(playerStrokes);
   return calculateFinalSimilarityByPreprocessed(
     preprocessedPrompt,
     preprocessPlayer,
+    config,
   );
 };
 
@@ -53,7 +56,8 @@ export const calculateFinalSimilarityByStrokes = (
 export const calculateFinalSimilarityByPreprocessed = (
   preprocessedPrompt: PreprocessedStrokeData,
   preprocessedPlayer: PreprocessedStrokeData,
-): Similarity => {
+  config?: SimilarityConfig,
+): SimulationResult => {
   const normalizedPromptStrokes = preprocessedPrompt.normalizedStrokes;
   const normalizedPlayerStrokes = preprocessedPlayer.normalizedStrokes;
 
@@ -64,10 +68,11 @@ export const calculateFinalSimilarityByPreprocessed = (
   );
 
   // 스트로크 유사도
-  const strokeMatchSimilarity = calculateGreedyStrokeMatchScore(
+  const strokeMatchResult = calculateGreedyStrokeMatchScore(
     normalizedPromptStrokes,
     normalizedPlayerStrokes,
   );
+  const strokeMatchSimilarity = strokeMatchResult.score;
 
   // 형태 유사도
   const shapeScore = calculateShapeSimilarityByPreprocessed(
@@ -76,32 +81,34 @@ export const calculateFinalSimilarityByPreprocessed = (
   );
 
   const scaledShapeScore = applyNonLinearScale(shapeScore, 90);
-  let weights;
+  let weights = config?.weights;
 
-  const promptStrokeCount = preprocessedPrompt.strokeCount;
-  const playerStrokeCount = normalizedPlayerStrokes.length;
-  const strokeCountDifference = promptStrokeCount - playerStrokeCount;
-  if (strokeCountDifference > 0) {
-    // 스트로크 개수가 더 적을 때: 선 유사도에 가중치
-    weights = {
-      strokeCount: 0.1,
-      strokeMatch: 0.6,
-      shape: 0.3,
-    };
-  } else if (strokeCountDifference === 0) {
-    // 스트로크 개수가 같을 때
-    weights = {
-      strokeCount: 0.15,
-      strokeMatch: 0.35,
-      shape: 0.5,
-    };
-  } else {
-    // 스트로크 개수가 더 많을 때: 형태 유사도에 가중치
-    weights = {
-      strokeCount: 0.1,
-      strokeMatch: 0.3,
-      shape: 0.6,
-    };
+  if (!weights) {
+    const promptStrokeCount = preprocessedPrompt.strokeCount;
+    const playerStrokeCount = normalizedPlayerStrokes.length;
+    const strokeCountDifference = promptStrokeCount - playerStrokeCount;
+    if (strokeCountDifference > 0) {
+      // 스트로크 개수가 더 적을 때: 선 유사도에 가중치
+      weights = {
+        strokeCount: 0.1,
+        strokeMatch: 0.6,
+        shape: 0.3,
+      };
+    } else if (strokeCountDifference === 0) {
+      // 스트로크 개수가 같을 때
+      weights = {
+        strokeCount: 0.15,
+        strokeMatch: 0.35,
+        shape: 0.5,
+      };
+    } else {
+      // 스트로크 개수가 더 많을 때: 형태 유사도에 가중치
+      weights = {
+        strokeCount: 0.1,
+        strokeMatch: 0.3,
+        shape: 0.6,
+      };
+    }
   }
 
   // 최종 유사도 계산
@@ -118,11 +125,17 @@ export const calculateFinalSimilarityByPreprocessed = (
     strokeCountSimilarity: Math.round(weightedStrokeCountSim * 100) / 100,
     strokeMatchSimilarity: Math.round(weightedStrokeMatchSim * 100) / 100,
     shapeSimilarity: Math.round(weightedShapeSim * 100) / 100,
+    details: {
+      strokeMatch: {
+        matches: strokeMatchResult.matches,
+        unmatched: strokeMatchResult.unmatched,
+      },
+    },
   };
 };
 
 // 일정 길이 이상의 스트로크만 남김
-const getValidStrokes = (strokes: Stroke[]): Stroke[] => {
+export const getValidStrokes = (strokes: Stroke[]): Stroke[] => {
   const MIN_STROKE_LENGTH = 10; // 최소 길이 임계값
   return strokes.filter((stroke) => {
     const [xs, ys] = stroke.points;
@@ -137,7 +150,7 @@ const getValidStrokes = (strokes: Stroke[]): Stroke[] => {
 };
 
 // 스트로크 정규화
-const normalizeStrokes = (strokes: Stroke[]): Stroke[] => {
+export const normalizeStrokes = (strokes: Stroke[]): Stroke[] => {
   if (strokes.length === 0) return [];
 
   // 모든 점의 min/max 찾기

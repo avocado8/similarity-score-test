@@ -10,7 +10,10 @@ import type { Stroke } from "../config/types";
 export const comparePairwiseStrokeSimilarity = (
   stroke1: Stroke,
   stroke2: Stroke,
-): number => {
+): {
+  score: number;
+  details: { length: number; direction: number; position: number };
+} => {
   const lengthSimilarity = getLengthSimilarity(stroke1, stroke2);
   const directionSimilarity = getDirectionSimilarity(stroke1, stroke2);
   const positionSimilarity = getPositionSimilarity(stroke1, stroke2);
@@ -21,7 +24,14 @@ export const comparePairwiseStrokeSimilarity = (
     directionSimilarity * 0.3 +
     positionSimilarity * 0.35;
 
-  return similarity * 100;
+  return {
+    score: similarity * 100,
+    details: {
+      length: lengthSimilarity,
+      direction: directionSimilarity,
+      position: positionSimilarity,
+    },
+  };
 };
 
 // 길이 유사도: 두 스트로크의 길이가 얼마나 비슷한가

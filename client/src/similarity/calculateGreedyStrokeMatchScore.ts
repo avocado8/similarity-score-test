@@ -2,19 +2,40 @@ import { comparePairwiseStrokeSimilarity } from "./comparePairwiseStrokeSimilari
 import { calculateColorSimilarity } from "./calculateColorSimilarity";
 import type { Stroke } from "../config/types";
 
+export interface StrokeMatchResult {
+  score: number;
+  matches: {
+    index1: number;
+    index2: number;
+    score: number;
+    subScores: {
+      length: number;
+      direction: number;
+      position: number;
+      color: number;
+    };
+  }[];
+  unmatched: number[];
+}
+
 // 두 그림의 스트로크를 모두 일대일로 매칭하여 최종 스트로크 유사도 산출
 export const calculateGreedyStrokeMatchScore = (
   strokes1: Stroke[],
   strokes2: Stroke[],
-): number => {
-  if (strokes1.length === 0 && strokes2.length === 0) return 100;
-  if (strokes1.length === 0 || strokes2.length === 0) return 0;
+): StrokeMatchResult => {
+  if (strokes1.length === 0 && strokes2.length === 0)
+    return { score: 100, matches: [], unmatched: [] };
+  if (strokes1.length === 0 || strokes2.length === 0)
+    return { score: 0, matches: [], unmatched: [] };
 
   const n1 = strokes1.length;
   const n2 = strokes2.length;
 
   // 유사도 행렬 계산
-  const similarityMatrix: number[][] = [];
+  const similarityMatrix: {
+    score: number;
+    details: { length: number; direction: number; position: number };
+  }[][] = [];
   for (let i = 0; i < n1; i++) {
     similarityMatrix[i] = [];
     for (let j = 0; j < n2; j++) {
@@ -26,15 +47,26 @@ export const calculateGreedyStrokeMatchScore = (
   }
 
   // Greedy 매칭
-  const used1 = new Set();
-  const used2 = new Set();
-  const matches = [];
+  const used1 = new Set<number>();
+  const used2 = new Set<number>();
+  const matches: number[] = [];
+  const detailedMatches: {
+    index1: number;
+    index2: number;
+    score: number;
+    subScores: {
+      length: number;
+      direction: number;
+      position: number;
+      color: number;
+    };
+  }[] = [];
 
   // 높은 유사도부터 매칭
-  const pairs = [];
+  const pairs: { i: number; j: number; similarity: number }[] = [];
   for (let i = 0; i < n1; i++) {
     for (let j = 0; j < n2; j++) {
-      pairs.push({ i, j, similarity: similarityMatrix[i][j] });
+      pairs.push({ i, j, similarity: similarityMatrix[i][j].score });
     }
   }
   pairs.sort((a, b) => b.similarity - a.similarity);
@@ -52,17 +84,32 @@ export const calculateGreedyStrokeMatchScore = (
 
       const finalPairSim = strokeShapeSim * (0.7 + 0.3 * strokeColorSim);
       matches.push(finalPairSim);
+
+      detailedMatches.push({
+        index1: pair.i,
+        index2: pair.j,
+        score: finalPairSim,
+        subScores: {
+          ...similarityMatrix[pair.i][pair.j].details,
+          color: strokeColorSim,
+        },
+      });
     }
   }
 
-  // 매칭 안 된 stroke는 0점 처리
-  const unmatchedCount = Math.max(n1, n2) - matches.length;
-  for (let i = 0; i < unmatchedCount; i++) {
-    matches.push(0);
-  }
-
-  // 평균 계산
   const avgSimilarity =
     matches.reduce((sum, s) => sum + s, 0) / Math.max(n1, n2);
-  return avgSimilarity;
+
+  const unmatchedIndices: number[] = [];
+  for (let j = 0; j < n2; j++) {
+    if (!used2.has(j)) {
+      unmatchedIndices.push(j);
+    }
+  }
+
+  return {
+    score: avgSimilarity,
+    matches: detailedMatches,
+    unmatched: unmatchedIndices,
+  };
 };
