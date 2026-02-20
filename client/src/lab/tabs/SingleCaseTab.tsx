@@ -21,9 +21,9 @@ export const SingleCaseTab = () => {
   const [inputText, setInputText] = useState("");
   const [config, setConfig] = useState<SimilarityConfig>({
     weights: {
-      strokeCount: 0.15,
-      strokeMatch: 0.35,
-      shape: 0.5,
+      strokeCount: 0,
+      strokeMatch: 0.8,
+      shape: 0.2,
     },
     useNormalize: true,
   });

@@ -15,6 +15,35 @@ export interface Similarity {
   strokeCountSimilarity: number;
   strokeMatchSimilarity: number;
   shapeSimilarity: number;
+  densityBias?: number;
+  penaltyPoints?: number;
+  entropyNorm?: number[];
+  usedRatio?: number[];
+  inkLengthRatio?: number;
+  getPenalty?: boolean;
+}
+
+export interface DensityBiasConfig {
+  enabled: boolean;
+  gridSize: number;
+  weight: number;
+  maxPenalty: number;
+  maxRatioFreezone?: number;
+  usedRatioFreezone?: number;
+  scaleSlope?: number;
+}
+
+export interface InkLengthConfig {
+  enabled: boolean;
+  threshold: number;
+  maxRatio: number;
+  maxPenalty: number;
+}
+
+export interface StrokeMatchPenaltyConfig {
+  enabled: boolean;
+  threshold: number;
+  maxPenalty: number;
 }
 
 export interface SimilarityConfig {
@@ -23,6 +52,9 @@ export interface SimilarityConfig {
     strokeMatch: number;
     shape: number;
   };
+  densityBias?: DensityBiasConfig;
+  inkLength?: InkLengthConfig;
+  strokeMatchPenalty?: StrokeMatchPenaltyConfig;
   useNormalize?: boolean;
 }
 

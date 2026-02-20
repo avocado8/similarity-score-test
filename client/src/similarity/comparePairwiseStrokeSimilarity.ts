@@ -6,6 +6,10 @@ import {
 import { getEuclideanDistance, getRelativeSimilarity } from "./math";
 import type { Stroke } from "../config/types";
 
+const LENGTH_WEIGHT = 0.35;
+const DIRECTION_WEIGHT = 0.3;
+const POSITION_WEIGHT = 0.35;
+
 // 두 스트로크를 일대일로 비교
 export const comparePairwiseStrokeSimilarity = (
   stroke1: Stroke,
@@ -20,9 +24,9 @@ export const comparePairwiseStrokeSimilarity = (
 
   // 가중 평균
   const similarity =
-    lengthSimilarity * 0.35 +
-    directionSimilarity * 0.3 +
-    positionSimilarity * 0.35;
+    lengthSimilarity * LENGTH_WEIGHT +
+    directionSimilarity * DIRECTION_WEIGHT +
+    positionSimilarity * POSITION_WEIGHT;
 
   return {
     score: similarity * 100,

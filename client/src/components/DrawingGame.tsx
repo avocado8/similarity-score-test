@@ -9,6 +9,7 @@ import {
 } from "../config/canvasConfig";
 import { calculateFinalSimilarityByStrokes } from "../similarity/calculateFinalSimilarity";
 import type { Color, Stroke } from "../config/types";
+import { similarityConfig } from "../config/consts";
 
 // drawing.json의 첫 번째 요소를 제시 그림으로 사용
 const promptStrokes: Stroke[] = drawingData[0].map((item) => ({
@@ -39,6 +40,7 @@ export const DrawingGame = () => {
         const result = calculateFinalSimilarityByStrokes(
           promptStrokes,
           updatedStrokes,
+          similarityConfig,
         );
         setSimilarity(result.similarity);
       } else {

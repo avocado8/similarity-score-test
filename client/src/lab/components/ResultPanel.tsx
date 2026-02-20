@@ -44,6 +44,39 @@ export const ResultPanel = ({ result, onHoverMatch }: Props) => {
                 {result.shapeSimilarity.toFixed(1)}
               </td>
             </tr>
+            <tr>
+              <td style={{ padding: "5px" }}>밀도 점수</td>
+              <td style={{ fontWeight: "bold", textAlign: "right" }}>
+                {result.densityBias?.toFixed(1)}
+              </td>
+            </tr>
+            <tr>
+              <td style={{ padding: "5px" }}>잉크 길이 비율</td>
+              <td
+                style={{
+                  fontWeight: "bold",
+                  textAlign: "right",
+                  color:
+                    (result.inkLengthRatio ?? 0) > 1.5 ? "orange" : "inherit",
+                }}
+              >
+                {result.inkLengthRatio?.toFixed(2)}x
+              </td>
+            </tr>
+            <tr>
+              <td style={{ padding: "5px" }}>스트로크 매칭 패널티</td>
+              <td style={{ fontWeight: "bold", textAlign: "right" }}>
+                {result.getPenalty ? "true" : "false"}
+              </td>
+            </tr>
+            <tr>
+              <td style={{ padding: "5px" }}>페널티 점수</td>
+              <td
+                style={{ fontWeight: "bold", textAlign: "right", color: "red" }}
+              >
+                {result.penaltyPoints?.toFixed(1)}
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>

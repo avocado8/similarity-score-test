@@ -1,6 +1,7 @@
 import { comparePairwiseStrokeSimilarity } from "./comparePairwiseStrokeSimilarity";
 import { calculateColorSimilarity } from "./calculateColorSimilarity";
 import type { Stroke } from "../config/types";
+import { similarityConfig } from "../config/consts";
 
 export interface StrokeMatchResult {
   score: number;
@@ -16,12 +17,15 @@ export interface StrokeMatchResult {
     };
   }[];
   unmatched: number[];
+  getPenalty?: boolean;
+  outlierRatio?: number;
 }
 
 // 두 그림의 스트로크를 모두 일대일로 매칭하여 최종 스트로크 유사도 산출
 export const calculateGreedyStrokeMatchScore = (
   strokes1: Stroke[],
   strokes2: Stroke[],
+  penaltyThreshold?: number,
 ): StrokeMatchResult => {
   if (strokes1.length === 0 && strokes2.length === 0)
     return { score: 100, matches: [], unmatched: [] };
@@ -71,6 +75,7 @@ export const calculateGreedyStrokeMatchScore = (
   }
   pairs.sort((a, b) => b.similarity - a.similarity);
 
+  let outlierScoreCount = 0;
   for (const pair of pairs) {
     if (!used1.has(pair.i) && !used2.has(pair.j)) {
       used1.add(pair.i);
@@ -84,6 +89,13 @@ export const calculateGreedyStrokeMatchScore = (
 
       const finalPairSim = strokeShapeSim * (0.7 + 0.3 * strokeColorSim);
       matches.push(finalPairSim);
+
+      // 매칭 점수가 기준 이하일 경우 아웃라이어 패널티
+      const threshold =
+        penaltyThreshold ?? similarityConfig.strokeMatchPenalty?.threshold ?? 50;
+      if (finalPairSim <= threshold) {
+        outlierScoreCount += 1;
+      }
 
       detailedMatches.push({
         index1: pair.i,
@@ -111,5 +123,7 @@ export const calculateGreedyStrokeMatchScore = (
     score: avgSimilarity,
     matches: detailedMatches,
     unmatched: unmatchedIndices,
+    getPenalty: outlierScoreCount >= Math.ceil(matches.length / 2),
+    outlierRatio: matches.length > 0 ? outlierScoreCount / matches.length : 0,
   };
 };

@@ -13,6 +13,8 @@ import type {
   SimulationResult,
   Stroke,
 } from "../config/types";
+import { calculateDensityBiasScore } from "./penalty/densityBias";
+import { calculateInkLengthPenalty } from "./penalty/inkLength";
 
 // 스트로크에서 유사도 계산에 필요한 수학적 데이터를 미리 계산하는 함수
 export const preprocessStrokes = (
@@ -71,6 +73,7 @@ export const calculateFinalSimilarityByPreprocessed = (
   const strokeMatchResult = calculateGreedyStrokeMatchScore(
     normalizedPromptStrokes,
     normalizedPlayerStrokes,
+    config?.strokeMatchPenalty?.threshold,
   );
   const strokeMatchSimilarity = strokeMatchResult.score;
 
@@ -115,8 +118,49 @@ export const calculateFinalSimilarityByPreprocessed = (
   const weightedStrokeCountSim = strokeCountSimilarity * weights.strokeCount;
   const weightedStrokeMatchSim = strokeMatchSimilarity * weights.strokeMatch;
   const weightedShapeSim = scaledShapeScore * weights.shape;
-  const similarity =
+  let similarity =
     weightedStrokeCountSim + weightedStrokeMatchSim + weightedShapeSim;
+
+  const densityBias = calculateDensityBiasScore(
+    normalizedPromptStrokes,
+    normalizedPlayerStrokes,
+    config?.densityBias,
+  ); // 0~100
+
+  // 잉크 길이 패널티
+  const inkLengthResult = calculateInkLengthPenalty(
+    normalizedPromptStrokes,
+    normalizedPlayerStrokes,
+    config?.inkLength,
+  );
+
+  // 패널티 적용 여부 및 비활성화 체크
+  // (개별 config가 있으면 그것을 따르고, 없으면 기본값 true)
+  const enableDensityBias = config?.densityBias?.enabled ?? true;
+  const enableInkLength = config?.inkLength?.enabled ?? true;
+
+  // const MAX_DENSITY_PENALTY = config?.densityBias?.maxPenalty ?? 25;
+
+  let penaltyPoints = 0;
+
+  // 1. 밀도 편향 패널티 합산
+  if (enableDensityBias) {
+    // const p = (1 - densityBias.densityBiasScore / 100) * MAX_DENSITY_PENALTY;
+    penaltyPoints += densityBias.densityBiasScore;
+  }
+
+  // 2. 잉크 길이 패널티 합산
+  if (enableInkLength) {
+    penaltyPoints += inkLengthResult.penaltyScore;
+  }
+
+  // 3. 스트로크 매칭 패널티 합산
+  const enableStrokeMatchPenalty = config?.strokeMatchPenalty?.enabled ?? true;
+  if (enableStrokeMatchPenalty && strokeMatchResult.getPenalty) {
+    penaltyPoints += config?.strokeMatchPenalty?.maxPenalty ?? 10;
+  }
+
+  similarity = Math.max(0, similarity - penaltyPoints);
 
   const roundedSimilarity = Math.round(similarity * 100) / 100;
 
@@ -125,6 +169,10 @@ export const calculateFinalSimilarityByPreprocessed = (
     strokeCountSimilarity: Math.round(weightedStrokeCountSim * 100) / 100,
     strokeMatchSimilarity: Math.round(weightedStrokeMatchSim * 100) / 100,
     shapeSimilarity: Math.round(weightedShapeSim * 100) / 100,
+    densityBias: densityBias.densityBiasScore,
+    inkLengthRatio: inkLengthResult.ratio,
+    penaltyPoints,
+    getPenalty: enableStrokeMatchPenalty && strokeMatchResult.getPenalty,
     details: {
       strokeMatch: {
         matches: strokeMatchResult.matches,
