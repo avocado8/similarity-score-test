@@ -1,4 +1,4 @@
-import type { Stroke } from "../similarity/model";
+import type { Stroke } from "../config/types";
 
 interface RawDrawing {
   word?: string;
