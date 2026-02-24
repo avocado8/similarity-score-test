@@ -29,6 +29,7 @@ export const preprocessStrokes = (
   const radialSignature = getRadialSignature(points);
 
   return {
+    originalStrokes: strokes,
     normalizedStrokes,
     strokeCount: normalizedStrokes.length,
     points,

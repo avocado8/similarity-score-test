@@ -78,6 +78,7 @@ export interface SimulationResult extends Similarity {
 }
 
 export interface PreprocessedStrokeData {
+  originalStrokes?: Stroke[];
   normalizedStrokes: Stroke[];
   strokeCount: number;
   points: Point[];

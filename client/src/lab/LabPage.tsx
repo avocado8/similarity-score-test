@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { DataTab } from "./tabs/DataTab";
 import { SingleCaseTab } from "./tabs/SingleCaseTab";
+import { TestSetBuilderTab } from "./tabs/TestSetBuilderTab";
+import { TestTab } from "./tabs/TestTab";
 
-type Tab = "data" | "single" | "multi" | "human";
+type Tab = "data" | "single" | "human" | "test" | "builder";
 
 export const LabPage = () => {
-  const [activeTab, setActiveTab] = useState<Tab>("data");
+  const [activeTab, setActiveTab] = useState<Tab>("builder");
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -13,8 +15,10 @@ export const LabPage = () => {
         return <DataTab />;
       case "single":
         return <SingleCaseTab />;
-      case "multi":
-        return <div>다중 케이스 테스트 (준비중)</div>;
+      case "builder":
+        return <TestSetBuilderTab />;
+      case "test":
+        return <TestTab />;
       case "human":
         return <div>휴먼 평가 (준비중)</div>;
       default:
@@ -37,6 +41,11 @@ export const LabPage = () => {
         <h2 style={{ margin: 0 }}>🔬 실험실</h2>
         <nav style={{ display: "flex", gap: "5px" }}>
           <TabButton
+            label="테스트 셋 빌더"
+            active={activeTab === "builder"}
+            onClick={() => setActiveTab("builder")}
+          />
+          <TabButton
             label="데이터"
             active={activeTab === "data"}
             onClick={() => setActiveTab("data")}
@@ -47,14 +56,9 @@ export const LabPage = () => {
             onClick={() => setActiveTab("single")}
           />
           <TabButton
-            label="다중 케이스"
-            active={activeTab === "multi"}
-            onClick={() => setActiveTab("multi")}
-          />
-          <TabButton
-            label="휴먼 평가"
-            active={activeTab === "human"}
-            onClick={() => setActiveTab("human")}
+            label="테스트 (벤치마크)"
+            active={activeTab === "test"}
+            onClick={() => setActiveTab("test")}
           />
         </nav>
       </header>
