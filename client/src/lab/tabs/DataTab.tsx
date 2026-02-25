@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-// import drawingData from "../../../../drawing.json";
-import drawingData from "../../data/book/B-book-4.json";
+import drawingData from "../../../../drawing.json";
+// import drawingData from "../../data/book/B-book-0.json";
 import { drawStrokes } from "../../utils/drawStrokes";
 import type { Color, Stroke } from "../../config/types";
 

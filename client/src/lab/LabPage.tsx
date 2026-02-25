@@ -3,8 +3,9 @@ import { DataTab } from "./tabs/DataTab";
 import { SingleCaseTab } from "./tabs/SingleCaseTab";
 import { TestSetBuilderTab } from "./tabs/TestSetBuilderTab";
 import { TestTab } from "./tabs/TestTab";
+import { PreprocessingTab } from "./tabs/PreprocessingTab";
 
-type Tab = "data" | "single" | "human" | "test" | "builder";
+type Tab = "data" | "single" | "human" | "test" | "builder" | "preprocessing";
 
 export const LabPage = () => {
   const [activeTab, setActiveTab] = useState<Tab>("builder");
@@ -19,6 +20,8 @@ export const LabPage = () => {
         return <TestSetBuilderTab />;
       case "test":
         return <TestTab />;
+      case "preprocessing":
+        return <PreprocessingTab />;
       case "human":
         return <div>휴먼 평가 (준비중)</div>;
       default:
@@ -54,6 +57,11 @@ export const LabPage = () => {
             label="단일 케이스"
             active={activeTab === "single"}
             onClick={() => setActiveTab("single")}
+          />
+          <TabButton
+            label="전처리"
+            active={activeTab === "preprocessing"}
+            onClick={() => setActiveTab("preprocessing")}
           />
           <TabButton
             label="테스트 (벤치마크)"

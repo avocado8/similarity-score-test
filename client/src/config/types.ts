@@ -55,6 +55,8 @@ export interface SimilarityConfig {
   densityBias?: DensityBiasConfig;
   inkLength?: InkLengthConfig;
   strokeMatchPenalty?: StrokeMatchPenaltyConfig;
+  useRdp?: boolean;
+  rdpEpsilon?: number;
   useNormalize?: boolean;
 }
 
@@ -75,6 +77,7 @@ export interface SimulationResult extends Similarity {
       unmatched: number[];
     };
   };
+  rdpTimeMs?: number;
 }
 
 export interface PreprocessedStrokeData {

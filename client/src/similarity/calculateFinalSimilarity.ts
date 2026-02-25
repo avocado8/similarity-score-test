@@ -15,6 +15,7 @@ import type {
 } from "../config/types";
 import { calculateDensityBiasScore } from "./penalty/densityBias";
 import { calculateInkLengthPenalty } from "./penalty/inkLength";
+import { rdpStroke } from "../utils/test/rdp";
 
 // 스트로크에서 유사도 계산에 필요한 수학적 데이터를 미리 계산하는 함수
 export const preprocessStrokes = (
@@ -41,18 +42,38 @@ export const preprocessStrokes = (
 };
 
 // 스트로크 데이터로 최종 유사도 계산
+/**
+ * 1) 전처리 (정규화)
+ * 2) 스트로크 매칭
+ * 3) 개수 패널티 & 최종 점수 계산
+ */
 export const calculateFinalSimilarityByStrokes = (
   promptStrokes: Stroke[],
   playerStrokes: Stroke[],
   config?: SimilarityConfig,
 ): SimulationResult => {
-  const preprocessedPrompt = preprocessStrokes(promptStrokes);
-  const preprocessPlayer = preprocessStrokes(playerStrokes);
-  return calculateFinalSimilarityByPreprocessed(
+  const startRdp = performance.now();
+  // Apply RDP if configured
+  const preparedPrompt =
+    config?.useRdp && config?.rdpEpsilon !== undefined
+      ? promptStrokes.map((s) => rdpStroke(s, config.rdpEpsilon!))
+      : promptStrokes;
+
+  const preparedPlayer =
+    config?.useRdp && config?.rdpEpsilon !== undefined
+      ? playerStrokes.map((s) => rdpStroke(s, config.rdpEpsilon!))
+      : playerStrokes;
+  const rdpTimeMs = performance.now() - startRdp;
+
+  const preprocessedPrompt = preprocessStrokes(preparedPrompt);
+  const preprocessPlayer = preprocessStrokes(preparedPlayer);
+  const res = calculateFinalSimilarityByPreprocessed(
     preprocessedPrompt,
     preprocessPlayer,
     config,
   );
+  res.rdpTimeMs = rdpTimeMs;
+  return res;
 };
 
 // 전처리한 데이터로 최종 유사도 계산
