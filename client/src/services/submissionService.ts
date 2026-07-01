@@ -95,7 +95,7 @@ export async function updateSubmissionStatus(
     .from("submissions")
     .update({
       status: payload.status,
-      rejected_reason: payload.rejected_reason || null,
+      rejected_reason: payload.rejected_reason ?? null,
       reviewed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -108,6 +108,25 @@ export async function updateSubmissionStatus(
   }
 
   return data as Submission;
+}
+
+/**
+ * 제출 삭제
+ */
+export async function deleteSubmission(id: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("submissions")
+    .delete()
+    .eq("id", id)
+    .select("id");
+
+  if (error) {
+    throw new Error(`Failed to delete submission: ${error.message}`);
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error(`삭제할 제출을 찾을 수 없습니다. id=${id}`);
+  }
 }
 
 /**
