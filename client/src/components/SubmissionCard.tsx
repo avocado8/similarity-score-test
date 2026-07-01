@@ -6,14 +6,18 @@ import type { Submission } from "../types/submission";
 
 interface SubmissionCardProps {
   submission: Submission;
-  onStatusChange: (id: string, status: "approved" | "rejected") => void;
-  showActions?: boolean;
+  actionMode: "pending" | "rejected" | "approved";
+  onApprove: (id: string) => Promise<void> | void;
+  onReject?: (id: string, reason: string) => Promise<void> | void;
+  onDelete?: (id: string) => Promise<void> | void;
 }
 
 export const SubmissionCard = ({
   submission,
-  onStatusChange,
-  showActions = true,
+  actionMode,
+  onApprove,
+  onReject,
+  onDelete,
 }: SubmissionCardProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -47,7 +51,7 @@ export const SubmissionCard = ({
       await updateSubmissionStatus(submission.id, {
         status: "approved",
       });
-      onStatusChange(submission.id, "approved");
+      onApprove(submission.id);
     } catch (error) {
       console.error("Failed to approve:", error);
       alert("승인 중 오류가 발생했습니다.");
@@ -57,8 +61,7 @@ export const SubmissionCard = ({
   };
 
   const handleReject = async () => {
-    if (!rejectionReason.trim()) {
-      alert("반려 사유를 입력해주세요.");
+    if (!onReject) {
       return;
     }
 
@@ -68,7 +71,7 @@ export const SubmissionCard = ({
         status: "rejected",
         rejected_reason: rejectionReason,
       });
-      onStatusChange(submission.id, "rejected");
+      onReject(submission.id, rejectionReason);
     } catch (error) {
       console.error("Failed to reject:", error);
       alert("반려 중 오류가 발생했습니다.");
@@ -76,6 +79,35 @@ export const SubmissionCard = ({
       setIsUpdating(false);
       setRejectionReason("");
       setShowRejectInput(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!onDelete) {
+      return;
+    }
+
+    if (
+      !window.confirm(
+        "이 제출을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+      )
+    ) {
+      return;
+    }
+
+    setIsUpdating(true);
+    console.debug("Deleting submission id:", submission.id);
+    try {
+      await onDelete(submission.id);
+    } catch (error) {
+      console.error("Failed to delete:", { id: submission.id, error });
+      alert(
+        error instanceof Error
+          ? `삭제 중 오류: ${error.message}`
+          : "삭제 중 오류가 발생했습니다.",
+      );
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -94,7 +126,7 @@ export const SubmissionCard = ({
       style={{
         border: "1px solid #ddd",
         borderRadius: "8px",
-        padding: "16px",
+        padding: "12px",
         backgroundColor: "#fafafa",
         marginBottom: "16px",
       }}
@@ -124,7 +156,7 @@ export const SubmissionCard = ({
       </div>
 
       {/* 캔버스 */}
-      <div style={{ marginBottom: "16px" }}>
+      <div style={{ marginBottom: "12px" }}>
         <canvas
           ref={canvasRef}
           width={CANVAS_CONFIG.width}
@@ -140,7 +172,7 @@ export const SubmissionCard = ({
         />
       </div>
 
-      {showActions ? (
+      {actionMode === "pending" ? (
         <>
           {/* 액션 버튼 */}
           <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
@@ -203,7 +235,7 @@ export const SubmissionCard = ({
               <textarea
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="반려 사유를 입력해주세요 (예: 그림이 불완전함, 부적절한 내용 등)"
+                placeholder="반려 사유를 입력해주세요 (선택사항, 비워도 제출 가능)"
                 style={{
                   width: "100%",
                   minHeight: "60px",
@@ -218,19 +250,15 @@ export const SubmissionCard = ({
               />
               <button
                 onClick={handleReject}
-                disabled={isUpdating || !rejectionReason.trim()}
+                disabled={isUpdating}
                 style={{
                   width: "100%",
                   padding: "8px",
-                  backgroundColor:
-                    !rejectionReason.trim() || isUpdating ? "#ccc" : "#f44336",
+                  backgroundColor: isUpdating ? "#ccc" : "#f44336",
                   color: "white",
                   border: "none",
                   borderRadius: "4px",
-                  cursor:
-                    !rejectionReason.trim() || isUpdating
-                      ? "not-allowed"
-                      : "pointer",
+                  cursor: isUpdating ? "not-allowed" : "pointer",
                   fontSize: "13px",
                   fontWeight: 600,
                 }}
@@ -240,28 +268,148 @@ export const SubmissionCard = ({
             </div>
           )}
         </>
+      ) : actionMode === "approved" ? (
+        <>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+            <button
+              onClick={() => setShowRejectInput(!showRejectInput)}
+              disabled={isUpdating}
+              style={{
+                flex: 1,
+                padding: "10px",
+                backgroundColor: isUpdating ? "#ccc" : "#f44336",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: isUpdating ? "not-allowed" : "pointer",
+                fontSize: "14px",
+                fontWeight: 600,
+              }}
+            >
+              {isUpdating ? "처리 중..." : "↺ 반려로 변경"}
+            </button>
+          </div>
+
+          {showRejectInput && (
+            <div
+              style={{
+                marginTop: "8px",
+                padding: "12px",
+                backgroundColor: "white",
+                borderRadius: "4px",
+                border: "1px solid #f44336",
+              }}
+            >
+              <p
+                style={{
+                  margin: "0 0 8px 0",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                }}
+              >
+                반려 사유
+              </p>
+              <textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="반려 사유를 입력해주세요 (선택사항, 비워도 제출 가능)"
+                style={{
+                  width: "100%",
+                  minHeight: "60px",
+                  padding: "8px",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  fontFamily: "Arial, sans-serif",
+                  fontSize: "13px",
+                  boxSizing: "border-box",
+                  marginBottom: "8px",
+                }}
+              />
+              <button
+                onClick={handleReject}
+                disabled={isUpdating}
+                style={{
+                  width: "100%",
+                  padding: "8px",
+                  backgroundColor: isUpdating ? "#ccc" : "#f44336",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: isUpdating ? "not-allowed" : "pointer",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                }}
+              >
+                반려 확인
+              </button>
+            </div>
+          )}
+        </>
+      ) : actionMode === "rejected" ? (
+        <>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+            <button
+              onClick={handleApprove}
+              disabled={isUpdating}
+              style={{
+                flex: 1,
+                padding: "10px",
+                backgroundColor: isUpdating ? "#ccc" : "#4CAF50",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: isUpdating ? "not-allowed" : "pointer",
+                fontSize: "14px",
+                fontWeight: 600,
+              }}
+            >
+              {isUpdating ? "처리 중..." : "✓ 재승인"}
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={isUpdating}
+              style={{
+                flex: 1,
+                padding: "10px",
+                backgroundColor: isUpdating ? "#ccc" : "#d32f2f",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: isUpdating ? "not-allowed" : "pointer",
+                fontSize: "14px",
+                fontWeight: 600,
+              }}
+            >
+              삭제
+            </button>
+          </div>
+          {isRejected && submission.rejected_reason && (
+            <div
+              style={{
+                padding: "12px",
+                backgroundColor: "#fff1f0",
+                borderRadius: "4px",
+                color: "#b71c1c",
+                fontSize: "13px",
+              }}
+            >
+              <strong>반려 사유:</strong> {submission.rejected_reason}
+            </div>
+          )}
+        </>
       ) : (
         <div
           style={{
             padding: "12px",
-            backgroundColor: isApproved ? "#d4edda" : "#f8d7da",
+            backgroundColor: "#d4edda",
             borderRadius: "4px",
-            color: isApproved ? "#155724" : "#721c24",
+            color: "#155724",
             fontSize: "13px",
           }}
         >
-          {isApproved
-            ? "이 제출은 승인된 항목입니다."
-            : "이 제출은 반려된 항목입니다."}
-          {isRejected && submission.rejected_reason && (
-            <div style={{ marginTop: "8px", fontWeight: 600 }}>
-              반려 사유: {submission.rejected_reason}
-            </div>
-          )}
+          이 제출은 승인된 항목입니다.
         </div>
       )}
-
-      {/* 반려 사유 입력 */}
     </div>
   );
 };

@@ -43,7 +43,10 @@ export const SubmissionPage = () => {
       });
 
       setSubmitStatus("success");
-      setSubmitMessage(`제출 완료! ID: ${result.id.slice(0, 8)}...`);
+      setSubmitMessage(
+        `제출이 완료되었습니다.
+관리자 검수 후 게임 반영 여부가 결정됩니다.`,
+      );
       clearCanvas();
 
       // 3초 후 메시지 자동 사라지기
@@ -74,7 +77,8 @@ export const SubmissionPage = () => {
     <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
       <h1>그림 제출</h1>
       <p style={{ color: "#666", marginBottom: "20px" }}>
-        아래 캔버스에 그림을 그리고 제출 버튼을 누르면 데이터가 저장됩니다.
+        아래 캔버스에 그림을 그리고 제출 버튼을 누르면 그림이 제출됩니다. 그림은
+        관리자 검수 후 게임에 반영됩니다.
       </p>
 
       <div style={{ display: "flex", gap: "40px", marginTop: "20px" }}>
@@ -202,7 +206,7 @@ export const SubmissionPage = () => {
                   fontWeight: 600,
                 }}
               >
-                🗑️ 모든 그림 삭제
+                🗑️ 캔버스 초기화
               </button>
               <p
                 style={{

@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getSubmissions,
   getSubmissionCount,
   getApprovedSubmissions,
+  deleteSubmission,
 } from "../services/submissionService";
 import { SubmissionCard } from "./SubmissionCard";
 import type { Submission } from "../types/submission";
@@ -16,9 +17,15 @@ export const AdminReviewPage = () => {
     [],
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [approvedCount, setApprovedCount] = useState(0);
   const [rejectedCount, setRejectedCount] = useState(0);
+  const [activeTab, setActiveTab] = useState<
+    "all" | "pending" | "approved" | "rejected"
+  >("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
 
   // 데이터 로드
@@ -27,8 +34,14 @@ export const AdminReviewPage = () => {
   }, []);
 
   const loadData = async () => {
-    setIsLoading(true);
     setError("");
+
+    if (!hasLoadedOnce) {
+      setIsLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
+
     try {
       const [
         pendingData,
@@ -60,27 +73,129 @@ export const AdminReviewPage = () => {
       console.error("Error loading submissions:", err);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
+      setHasLoadedOnce(true);
     }
   };
 
-  const handleStatusChange = (id: string, status: "approved" | "rejected") => {
-    setSubmissions((prev) => {
-      const moved = prev.find((sub) => sub.id === id);
+  const handleStatusChange = (
+    id: string,
+    status: "approved" | "rejected",
+    source: "pending" | "approved" = "pending",
+  ) => {
+    if (source === "pending") {
+      const moved = submissions.find((sub) => sub.id === id);
+      if (!moved) return;
 
-      if (moved) {
-        if (status === "approved") {
-          setApprovedSubmissions((prevApproved) => [moved, ...prevApproved]);
-          setApprovedCount((prevCount) => prevCount + 1);
-        } else {
-          setRejectedSubmissions((prevRejected) => [moved, ...prevRejected]);
-          setRejectedCount((prevCount) => prevCount + 1);
-        }
+      setSubmissions((prev) => prev.filter((sub) => sub.id !== id));
+      if (status === "approved") {
+        setApprovedSubmissions((prevApproved) => [moved, ...prevApproved]);
+        setApprovedCount((prevCount) => prevCount + 1);
+      } else {
+        setRejectedSubmissions((prevRejected) => [moved, ...prevRejected]);
+        setRejectedCount((prevCount) => prevCount + 1);
       }
-
       setPendingCount((prevCount) => Math.max(0, prevCount - 1));
+      return;
+    }
+
+    const moved = approvedSubmissions.find((sub) => sub.id === id);
+    if (!moved) return;
+
+    setApprovedSubmissions((prev) => prev.filter((sub) => sub.id !== id));
+    if (status === "rejected") {
+      setRejectedSubmissions((prevRejected) => [moved, ...prevRejected]);
+      setRejectedCount((prevCount) => prevCount + 1);
+    }
+    setApprovedCount((prevCount) => Math.max(0, prevCount - 1));
+  };
+
+  const handleReapproveRejected = (id: string) => {
+    setRejectedSubmissions((prev) => {
+      const moved = prev.find((sub) => sub.id === id);
+      if (!moved) return prev;
+      setApprovedSubmissions((prevApproved) => [moved, ...prevApproved]);
+      setApprovedCount((prevCount) => prevCount + 1);
+      setRejectedCount((prevCount) => Math.max(0, prevCount - 1));
       return prev.filter((sub) => sub.id !== id);
     });
   };
+
+  const handleDeleteRejected = async (id: string) => {
+    try {
+      await deleteSubmission(id);
+      await loadData();
+    } catch (error) {
+      console.error("Failed to delete rejected submission:", error);
+      alert("삭제 중 오류가 발생했습니다. 다시 시도해 주세요.");
+    }
+  };
+
+  const sortSubmissions = (items: Submission[]) =>
+    [...items].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+
+  const filteredPendingSubmissions = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const base = normalizedSearch
+      ? submissions.filter((submission) => {
+          const haystack = [
+            submission.id,
+            submission.note,
+            submission.rejected_reason,
+            submission.submitted_by,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return haystack.includes(normalizedSearch);
+        })
+      : submissions;
+
+    return sortSubmissions(base);
+  }, [searchTerm, submissions]);
+
+  const filteredApprovedSubmissions = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const base = normalizedSearch
+      ? approvedSubmissions.filter((submission) => {
+          const haystack = [
+            submission.id,
+            submission.note,
+            submission.rejected_reason,
+            submission.submitted_by,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return haystack.includes(normalizedSearch);
+        })
+      : approvedSubmissions;
+
+    return sortSubmissions(base);
+  }, [approvedSubmissions, searchTerm]);
+
+  const filteredRejectedSubmissions = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const base = normalizedSearch
+      ? rejectedSubmissions.filter((submission) => {
+          const haystack = [
+            submission.id,
+            submission.note,
+            submission.rejected_reason,
+            submission.submitted_by,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return haystack.includes(normalizedSearch);
+        })
+      : rejectedSubmissions;
+
+    return sortSubmissions(base);
+  }, [rejectedSubmissions, searchTerm]);
 
   // 승인된 데이터 다운로드
   const handleDownloadApproved = async () => {
@@ -232,6 +347,62 @@ export const AdminReviewPage = () => {
         </div>
       )}
 
+      {!isLoading && (
+        <div
+          style={{
+            marginBottom: "24px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "12px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {[
+              { key: "all", label: "전체" },
+              { key: "pending", label: "대기" },
+              { key: "approved", label: "승인" },
+              { key: "rejected", label: "반려" },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={async () => {
+                  setActiveTab(tab.key as typeof activeTab);
+                  await loadData();
+                }}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "999px",
+                  border:
+                    activeTab === tab.key
+                      ? "1px solid #2196F3"
+                      : "1px solid #ddd",
+                  backgroundColor: activeTab === tab.key ? "#eaf5ff" : "white",
+                  color: activeTab === tab.key ? "#0b6dc1" : "#333",
+                  cursor: "pointer",
+                  fontWeight: activeTab === tab.key ? 700 : 400,
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <input
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="ID, 메모, 반려 사유 검색"
+            style={{
+              minWidth: "240px",
+              padding: "8px 12px",
+              borderRadius: "6px",
+              border: "1px solid #ddd",
+              fontSize: "14px",
+            }}
+          />
+        </div>
+      )}
+
       {/* 에러 메시지 */}
       {error && (
         <div
@@ -256,129 +427,182 @@ export const AdminReviewPage = () => {
       )}
 
       {/* 제출 목록 */}
-      {!isLoading && submissions.length === 0 && (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "40px",
-            backgroundColor: "#f5f5f5",
-            borderRadius: "8px",
-            color: "#999",
-          }}
-        >
-          <p>검수 대기 중인 제출이 없습니다.</p>
-          <button
-            onClick={loadData}
-            style={{
-              marginTop: "12px",
-              padding: "8px 16px",
-              backgroundColor: "#2196F3",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontSize: "14px",
-            }}
-          >
-            새로고침
-          </button>
-        </div>
-      )}
-
-      {!isLoading && submissions.length > 0 && (
-        <div style={{ marginBottom: "32px" }}>
+      {!isLoading &&
+        (activeTab === "all" || activeTab === "pending") &&
+        filteredPendingSubmissions.length === 0 &&
+        activeTab === "pending" && (
           <div
             style={{
-              marginBottom: "16px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+              textAlign: "center",
+              padding: "40px",
+              backgroundColor: "#f5f5f5",
+              borderRadius: "8px",
+              color: "#999",
+              marginBottom: "24px",
             }}
           >
-            <h2 style={{ margin: "0" }}>
-              승인 대기 중 ({submissions.length}개)
-            </h2>
-            <button
-              onClick={loadData}
+            <p>조건에 맞는 대기 중인 제출이 없습니다.</p>
+          </div>
+        )}
+
+      {!isLoading &&
+        (activeTab === "all" || activeTab === "pending") &&
+        filteredPendingSubmissions.length > 0 && (
+          <div style={{ marginBottom: "32px" }}>
+            <div
               style={{
-                padding: "8px 16px",
-                backgroundColor: "#2196F3",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "14px",
+                marginBottom: "12px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "8px",
               }}
             >
-              새로고침
-            </button>
+              <h2 style={{ margin: "0" }}>
+                승인 대기 중 ({submissions.length}개)
+              </h2>
+              {isRefreshing && (
+                <span
+                  style={{
+                    fontSize: "12px",
+                    color: "#666",
+                    backgroundColor: "#f5f5f5",
+                    padding: "4px 8px",
+                    borderRadius: "999px",
+                  }}
+                >
+                  새 데이터 불러오는 중…
+                </span>
+              )}
+              <button
+                onClick={loadData}
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor: "#2196F3",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+              >
+                새로고침
+              </button>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+                gap: "12px",
+              }}
+            >
+              {filteredPendingSubmissions.map((submission) => (
+                <SubmissionCard
+                  key={submission.id}
+                  submission={submission}
+                  actionMode="pending"
+                  onApprove={(id) =>
+                    handleStatusChange(id, "approved", "pending")
+                  }
+                  onReject={(id) =>
+                    handleStatusChange(id, "rejected", "pending")
+                  }
+                />
+              ))}
+            </div>
           </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "16px",
-            }}
-          >
-            {submissions.map((submission) => (
-              <SubmissionCard
-                key={submission.id}
-                submission={submission}
-                onStatusChange={handleStatusChange}
-                showActions={true}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+        )}
 
-      {!isLoading && approvedSubmissions.length > 0 && (
-        <div style={{ marginBottom: "32px" }}>
-          <h2 style={{ marginBottom: "16px", color: "#155724" }}>
-            승인 완료 ({approvedSubmissions.length}개)
-          </h2>
+      {!isLoading &&
+        (activeTab === "all" || activeTab === "approved") &&
+        filteredApprovedSubmissions.length === 0 &&
+        activeTab === "approved" && (
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "16px",
+              textAlign: "center",
+              padding: "40px",
+              backgroundColor: "#f5f5f5",
+              borderRadius: "8px",
+              color: "#999",
+              marginBottom: "24px",
             }}
           >
-            {approvedSubmissions.map((submission) => (
-              <SubmissionCard
-                key={submission.id}
-                submission={submission}
-                onStatusChange={handleStatusChange}
-                showActions={false}
-              />
-            ))}
+            <p>조건에 맞는 승인된 제출이 없습니다.</p>
           </div>
-        </div>
-      )}
+        )}
 
-      {!isLoading && rejectedSubmissions.length > 0 && (
-        <div>
-          <h2 style={{ marginBottom: "16px", color: "#721c24" }}>
-            반려 완료 ({rejectedSubmissions.length}개)
-          </h2>
+      {!isLoading &&
+        (activeTab === "all" || activeTab === "approved") &&
+        filteredApprovedSubmissions.length > 0 && (
+          <div style={{ marginBottom: "32px" }}>
+            <h2 style={{ marginBottom: "16px", color: "#155724" }}>
+              승인 완료 ({approvedSubmissions.length}개)
+            </h2>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+                gap: "12px",
+              }}
+            >
+              {filteredApprovedSubmissions.map((submission) => (
+                <SubmissionCard
+                  key={submission.id}
+                  submission={submission}
+                  actionMode="approved"
+                  onApprove={() => Promise.resolve()}
+                  onReject={(id) =>
+                    handleStatusChange(id, "rejected", "approved")
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+      {!isLoading &&
+        (activeTab === "all" || activeTab === "rejected") &&
+        filteredRejectedSubmissions.length === 0 &&
+        activeTab === "rejected" && (
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "16px",
+              textAlign: "center",
+              padding: "40px",
+              backgroundColor: "#f5f5f5",
+              borderRadius: "8px",
+              color: "#999",
             }}
           >
-            {rejectedSubmissions.map((submission) => (
-              <SubmissionCard
-                key={submission.id}
-                submission={submission}
-                onStatusChange={handleStatusChange}
-                showActions={false}
-              />
-            ))}
+            <p>조건에 맞는 반려된 제출이 없습니다.</p>
           </div>
-        </div>
-      )}
+        )}
+
+      {!isLoading &&
+        (activeTab === "all" || activeTab === "rejected") &&
+        filteredRejectedSubmissions.length > 0 && (
+          <div>
+            <h2 style={{ marginBottom: "16px", color: "#721c24" }}>
+              반려 완료 ({rejectedSubmissions.length}개)
+            </h2>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+                gap: "12px",
+              }}
+            >
+              {filteredRejectedSubmissions.map((submission) => (
+                <SubmissionCard
+                  key={submission.id}
+                  submission={submission}
+                  actionMode="rejected"
+                  onApprove={handleReapproveRejected}
+                  onDelete={handleDeleteRejected}
+                />
+              ))}
+            </div>
+          </div>
+        )}
     </div>
   );
 };
