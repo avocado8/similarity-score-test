@@ -7,9 +7,14 @@ import type { Submission } from "../types/submission";
 interface SubmissionCardProps {
   submission: Submission;
   onStatusChange: (id: string, status: "approved" | "rejected") => void;
+  showActions?: boolean;
 }
 
-export const SubmissionCard = ({ submission, onStatusChange }: SubmissionCardProps) => {
+export const SubmissionCard = ({
+  submission,
+  onStatusChange,
+  showActions = true,
+}: SubmissionCardProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -28,7 +33,12 @@ export const SubmissionCard = ({ submission, onStatusChange }: SubmissionCardPro
     ctx.fillRect(0, 0, CANVAS_CONFIG.width, CANVAS_CONFIG.height);
 
     // 스트로크 그리기
-    drawStrokes(ctx, submission.strokes, CANVAS_CONFIG.width, CANVAS_CONFIG.height);
+    drawStrokes(
+      ctx,
+      submission.strokes,
+      CANVAS_CONFIG.width,
+      CANVAS_CONFIG.height,
+    );
   }, [submission.strokes]);
 
   const handleApprove = async () => {
@@ -71,6 +81,13 @@ export const SubmissionCard = ({ submission, onStatusChange }: SubmissionCardPro
 
   const createdAt = new Date(submission.created_at);
   const formattedTime = createdAt.toLocaleString("ko-KR");
+  const isApproved = submission.status === "approved";
+  const isRejected = submission.status === "rejected";
+  const statusLabel = isApproved
+    ? "승인 완료"
+    : isRejected
+      ? "반려 완료"
+      : "검수 대기";
 
   return (
     <div
@@ -83,7 +100,13 @@ export const SubmissionCard = ({ submission, onStatusChange }: SubmissionCardPro
       }}
     >
       {/* 헤더 정보 */}
-      <div style={{ marginBottom: "16px", display: "flex", justifyContent: "space-between" }}>
+      <div
+        style={{
+          marginBottom: "16px",
+          display: "flex",
+          justifyContent: "space-between",
+        }}
+      >
         <div>
           <p style={{ margin: "0 0 4px 0", fontSize: "14px", color: "#666" }}>
             <strong>ID:</strong> {submission.id.slice(0, 8)}...
@@ -96,7 +119,7 @@ export const SubmissionCard = ({ submission, onStatusChange }: SubmissionCardPro
           </p>
         </div>
         <div style={{ fontSize: "12px", color: "#999" }}>
-          Status: <span style={{ fontWeight: "bold" }}>{submission.status}</span>
+          Status: <span style={{ fontWeight: "bold" }}>{statusLabel}</span>
         </div>
       </div>
 
@@ -117,83 +140,128 @@ export const SubmissionCard = ({ submission, onStatusChange }: SubmissionCardPro
         />
       </div>
 
-      {/* 액션 버튼 */}
-      <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
-        <button
-          onClick={handleApprove}
-          disabled={isUpdating}
-          style={{
-            flex: 1,
-            padding: "10px",
-            backgroundColor: isUpdating ? "#ccc" : "#4CAF50",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: isUpdating ? "not-allowed" : "pointer",
-            fontSize: "14px",
-            fontWeight: 600,
-          }}
-        >
-          {isUpdating ? "처리 중..." : "✓ 승인"}
-        </button>
-        <button
-          onClick={() => setShowRejectInput(!showRejectInput)}
-          disabled={isUpdating}
-          style={{
-            flex: 1,
-            padding: "10px",
-            backgroundColor: isUpdating ? "#ccc" : "#f44336",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: isUpdating ? "not-allowed" : "pointer",
-            fontSize: "14px",
-            fontWeight: 600,
-          }}
-        >
-          ✕ 반려
-        </button>
-      </div>
+      {showActions ? (
+        <>
+          {/* 액션 버튼 */}
+          <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+            <button
+              onClick={handleApprove}
+              disabled={isUpdating}
+              style={{
+                flex: 1,
+                padding: "10px",
+                backgroundColor: isUpdating ? "#ccc" : "#4CAF50",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: isUpdating ? "not-allowed" : "pointer",
+                fontSize: "14px",
+                fontWeight: 600,
+              }}
+            >
+              {isUpdating ? "처리 중..." : "✓ 승인"}
+            </button>
+            <button
+              onClick={() => setShowRejectInput(!showRejectInput)}
+              disabled={isUpdating}
+              style={{
+                flex: 1,
+                padding: "10px",
+                backgroundColor: isUpdating ? "#ccc" : "#f44336",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: isUpdating ? "not-allowed" : "pointer",
+                fontSize: "14px",
+                fontWeight: 600,
+              }}
+            >
+              ✕ 반려
+            </button>
+          </div>
 
-      {/* 반려 사유 입력 */}
-      {showRejectInput && (
-        <div style={{ marginTop: "8px", padding: "12px", backgroundColor: "white", borderRadius: "4px", border: "1px solid #f44336" }}>
-          <p style={{ margin: "0 0 8px 0", fontSize: "13px", fontWeight: 600 }}>반려 사유</p>
-          <textarea
-            value={rejectionReason}
-            onChange={(e) => setRejectionReason(e.target.value)}
-            placeholder="반려 사유를 입력해주세요 (예: 그림이 불완전함, 부적절한 내용 등)"
-            style={{
-              width: "100%",
-              minHeight: "60px",
-              padding: "8px",
-              border: "1px solid #ddd",
-              borderRadius: "4px",
-              fontFamily: "Arial, sans-serif",
-              fontSize: "13px",
-              boxSizing: "border-box",
-              marginBottom: "8px",
-            }}
-          />
-          <button
-            onClick={handleReject}
-            disabled={isUpdating || !rejectionReason.trim()}
-            style={{
-              width: "100%",
-              padding: "8px",
-              backgroundColor: !rejectionReason.trim() || isUpdating ? "#ccc" : "#f44336",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: !rejectionReason.trim() || isUpdating ? "not-allowed" : "pointer",
-              fontSize: "13px",
-              fontWeight: 600,
-            }}
-          >
-            반려 확인
-          </button>
+          {/* 반려 사유 입력 */}
+          {showRejectInput && (
+            <div
+              style={{
+                marginTop: "8px",
+                padding: "12px",
+                backgroundColor: "white",
+                borderRadius: "4px",
+                border: "1px solid #f44336",
+              }}
+            >
+              <p
+                style={{
+                  margin: "0 0 8px 0",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                }}
+              >
+                반려 사유
+              </p>
+              <textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="반려 사유를 입력해주세요 (예: 그림이 불완전함, 부적절한 내용 등)"
+                style={{
+                  width: "100%",
+                  minHeight: "60px",
+                  padding: "8px",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  fontFamily: "Arial, sans-serif",
+                  fontSize: "13px",
+                  boxSizing: "border-box",
+                  marginBottom: "8px",
+                }}
+              />
+              <button
+                onClick={handleReject}
+                disabled={isUpdating || !rejectionReason.trim()}
+                style={{
+                  width: "100%",
+                  padding: "8px",
+                  backgroundColor:
+                    !rejectionReason.trim() || isUpdating ? "#ccc" : "#f44336",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor:
+                    !rejectionReason.trim() || isUpdating
+                      ? "not-allowed"
+                      : "pointer",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                }}
+              >
+                반려 확인
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <div
+          style={{
+            padding: "12px",
+            backgroundColor: isApproved ? "#d4edda" : "#f8d7da",
+            borderRadius: "4px",
+            color: isApproved ? "#155724" : "#721c24",
+            fontSize: "13px",
+          }}
+        >
+          {isApproved
+            ? "이 제출은 승인된 항목입니다."
+            : "이 제출은 반려된 항목입니다."}
+          {isRejected && submission.rejected_reason && (
+            <div style={{ marginTop: "8px", fontWeight: 600 }}>
+              반려 사유: {submission.rejected_reason}
+            </div>
+          )}
         </div>
       )}
+
+      {/* 반려 사유 입력 */}
     </div>
   );
 };
