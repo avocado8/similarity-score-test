@@ -2,10 +2,13 @@ import { useState } from "react";
 import { DrawingGame } from "./components/DrawingGame";
 import { DataPreview } from "./components/DataPreview";
 import { LabPage } from "./lab/LabPage";
+import { SubmissionPage } from "./components/SubmissionPage";
 import "./App.css";
 
 function App() {
-  const [view, setView] = useState<"game" | "preview" | "lab">("game");
+  const [view, setView] = useState<"game" | "submission" | "preview" | "lab">(
+    "game",
+  );
 
   return (
     <>
@@ -32,6 +35,20 @@ function App() {
             }}
           >
             게임
+          </button>
+          <button
+            onClick={() => setView("submission")}
+            style={{
+              fontWeight: view === "submission" ? "bold" : "normal",
+              padding: "8px 16px",
+              backgroundColor: view === "submission" ? "#2196F3" : "white",
+              color: view === "submission" ? "white" : "black",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            제출
           </button>
           <button
             onClick={() => setView("preview")}
@@ -63,6 +80,7 @@ function App() {
           </button>
         </div>
         {view === "game" && <DrawingGame />}
+        {view === "submission" && <SubmissionPage />}
         {view === "preview" && <DataPreview />}
         {view === "lab" && <LabPage />}
       </>
