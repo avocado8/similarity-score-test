@@ -37,7 +37,7 @@ export const SubmissionPage = () => {
     setSubmitStatus("idle");
 
     try {
-      const result = await createSubmission({
+      await createSubmission({
         strokes,
         submitted_by: undefined,
       });
