@@ -3,12 +3,13 @@ import { DrawingGame } from "./components/DrawingGame";
 import { DataPreview } from "./components/DataPreview";
 import { LabPage } from "./lab/LabPage";
 import { SubmissionPage } from "./components/SubmissionPage";
+import { AdminReviewPage } from "./components/AdminReviewPage";
 import "./App.css";
 
 function App() {
-  const [view, setView] = useState<"game" | "submission" | "preview" | "lab">(
-    "game",
-  );
+  const [view, setView] = useState<
+    "game" | "submission" | "admin" | "preview" | "lab"
+  >("game");
 
   return (
     <>
@@ -51,6 +52,20 @@ function App() {
             제출
           </button>
           <button
+            onClick={() => setView("admin")}
+            style={{
+              fontWeight: view === "admin" ? "bold" : "normal",
+              padding: "8px 16px",
+              backgroundColor: view === "admin" ? "#2196F3" : "white",
+              color: view === "admin" ? "white" : "black",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            관리자
+          </button>
+          <button
             onClick={() => setView("preview")}
             style={{
               fontWeight: view === "preview" ? "bold" : "normal",
@@ -81,6 +96,7 @@ function App() {
         </div>
         {view === "game" && <DrawingGame />}
         {view === "submission" && <SubmissionPage />}
+        {view === "admin" && <AdminReviewPage />}
         {view === "preview" && <DataPreview />}
         {view === "lab" && <LabPage />}
       </>
